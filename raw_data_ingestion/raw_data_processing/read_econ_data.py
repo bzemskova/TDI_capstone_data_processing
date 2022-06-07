@@ -171,5 +171,25 @@ for i in range(len(gdp_df_merge)):
     result = stats.linregress(np.arange(0,5,1),data/data[0])
     gdp_df_merge.loc[i,'GDP_trend_norm']=result.slope
 
+#%%
+#Merge GDP data with zipcode-county-state dataframe to get zipcode for each entry
+zipcodes_df = pd.read_csv('zipcodes.csv',dtype={'zip':str})
+zipcodes_df['zcta'] = ''
+for i in range(len(zipcodes_df)):
+    zipcodes_df.loc[i,'zcta'] = zipcodes_df.loc[i,'zip'][0:3]
+zcta_df = zipcodes_df.groupby(by='zcta')
+
+gdp_zcta_df = pd.merge(left=gdp_df_merge,right=zcta_df,
+                       left_on=['County','state'], right_on=['county','state'])
 
 #%%
+#Merge all economic data into one dataframe
+hpi_df = pd.read_pickle('HPI_trends_lat_long.pkl')
+merge_df1 = pd.merge(left=hpi_df,right=income_groups,
+                     left_on = 'Zipcode', right_on='Zipcode')
+merge_df2 = pd.merge(left=merge_df1,right=housing_groups,
+                     left_on = 'Zipcode', right_on='Zipcode')
+merge_master = pd.merge(left=merge_df2,right=gdp_zcta_df,
+                     left_on = 'Zipcode', right_on='zcta')
+
+merge_master.to_pickle('HPI_trends_lat_long.pkl')
